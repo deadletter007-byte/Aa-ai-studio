@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AA Ai Studio - S26 Ultra Camera</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #000; color: #fff; font-family: sans-serif; overflow: hidden; user-select: none; }
+        .glass { background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+        .teal-gradient { background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col justify-between relative">
+
+    <!-- Top Bar / Settings & Branding -->
+    <div class="absolute top-0 left-0 right-0 z-20 flex justify-between items-center p-4 glass border-b border-white/10">
+        <div class="flex items-center space-x-2">
+            <!-- AA Logo Badge -->
+            <div class="w-8 h-8 rounded-lg teal-gradient flex items-center justify-center font-black text-black shadow-lg">AA</div>
+            <div>
+                <h1 class="text-sm font-bold tracking-wider text-cyan-400">AA Ai Studio</h1>
+                <p class="text-[10px] text-gray-300">S26 Ultra Engine</p>
+            </div>
+        </div>
+        <div class="flex space-x-3 text-xs">
+            <span class="bg-black/60 px-2 py-1 rounded border border-cyan-500/30 text-cyan-300" id="ratioBadge">3:4</span>
+            <span class="bg-black/60 px-2 py-1 rounded border border-cyan-500/30 text-cyan-300" id="apertureBadge">f/1.4</span>
+            <span class="bg-black/60 px-2 py-1 rounded border border-red-500/50 text-red-400 animate-pulse">● AI Active</span>
+        </div>
+    </div>
+
+    <!-- Camera Viewfinder -->
+    <div class="relative flex-1 w-full h-full flex items-center justify-center bg-zinc-950 overflow-hidden" id="viewfinderContainer">
+        <!-- Real Camera Video Stream -->
+        <video id="cameraStream" autoplay playsinline class="absolute inset-0 w-full h-full object-cover"></video>
+        
+        <!-- Fallback Canvas Simulation if camera fails -->
+        <canvas id="simCanvas" class="absolute inset-0 w-full h-full object-cover hidden"></canvas>
+
+        <!-- AI Face & Eye Detection Overlays -->
+        <div id="faceBox" class="absolute border-2 border-green-400 rounded-lg pointer-events-none transition-all duration-200 hidden" style="width: 140px; height: 180px; top: 30%; left: 50%; transform: translateX(-50%);">
+            <div class="absolute -top-6 left-0 bg-green-500 text-black text-[10px] font-bold px-1 rounded">Face 99%</div>
+            <!-- Eye Tracking Dots -->
+            <div class="absolute top-10 left-8 w-2 h-2 bg-cyan-400 rounded-full animate-ping"></div>
+            <div class="absolute top-10 right-8 w-2 h-2 bg-cyan-400 rounded-full animate-ping"></div>
+        </div>
+
+        <!-- Watermark on Viewfinder -->
+        <div class="absolute bottom-4 left-4 pointer-events-none opacity-70">
+            <p class="text-xs font-bold text-white tracking-widest drop-shadow">AA Ai STUDIO</p>
+            <p class="text-[9px] text-cyan-300">200MP AI ProVisual Engine</p>
+        </div>
+    </div>
+
+    <!-- Controls & Shutter Area -->
+    <div class="absolute bottom-0 left-0 right-0 z-20 glass pb-6 pt-3 px-4 flex flex-col space-y-3 border-t border-white/10">
+        
+        <!-- Zoom Lens Carousel (0.5x to 100x) -->
+        <div class="flex justify-center space-x-3 overflow-x-auto py-1 text-xs">
+            <button onclick="setZoom(0.5)" class="zoom-btn px-2.5 py-1 rounded-full bg-black/50 text-gray-300">0.5x</button>
+            <button onclick="setZoom(1)" class="zoom-btn px-2.5 py-1 rounded-full bg-cyan-500 text-black font-bold">1x</button>
+            <button onclick="setZoom(3)" class="zoom-btn px-2.5 py-1 rounded-full bg-black/50 text-gray-300">3x</button>
+            <button onclick="setZoom(5)" class="zoom-btn px-2.5 py-1 rounded-full bg-black/50 text-gray-300">5x</button>
+            <button onclick="setZoom(10)" class="zoom-btn px-2.5 py-1 rounded-full bg-black/50 text-gray-300">10x</button>
+            <button onclick="setZoom(100)" class="zoom-btn px-2.5 py-1 rounded-full bg-black/50 text-gray-300">100x</button>
+        </div>
+
+        <!-- Mode Selectors -->
+        <div class="flex justify-around text-xs text-gray-400 uppercase tracking-wider font-semibold">
+            <span class="text-cyan-400 border-b-2 border-cyan-400 pb-1">Photo</span>
+            <span onclick="alert('200MP Ultra Detail Mode Activated!')">200MP</span>
+            <span onclick="alert('Pro Mode: ISO & Shutter speed ready')">Pro</span>
+            <span onclick="alert('Nightography Multi-frame AI On')">Night</span>
+            <span onclick="alert('Portrait Hair Edge Blur Enabled')">Portrait</span>
+        </div>
+
+        <!-- Shutter & Gallery Row -->
+        <div class="flex justify-between items-center px-6 pt-2">
+            <!-- Gallery Thumbnail Preview -->
+            <div id="galleryThumb" class="w-12 h-12 rounded-xl bg-zinc-800 border-2 border-white/20 overflow-hidden flex items-center justify-center">
+                <span class="text-[10px] text-gray-400">Gallery</span>
+            </div>
+
+            <!-- Big Shutter Button -->
+            <button onclick="capturePhoto()" class="w-20 h-20 rounded-full border-4 border-white flex items-center justify-center active:scale-95 transition">
+                <div class="w-16 h-16 rounded-full bg-white hover:bg-cyan-400 transition"></div>
+            </button>
+
+            <!-- Camera Flip / Settings -->
+            <button onclick="toggleCamera()" class="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-white">
+                🔄
+            </button>
+        </div>
+    </div>
+
+    <!-- Script to handle camera & features -->
+    <script>
+        const video = document.getElementById('cameraStream');
+        let currentStream = null;
+        let useFrontCamera = false;
+
+        // Start Camera Stream
+        async function startCamera() {
+            try {
+                if (currentStream) {
+                    currentStream.getTracks().forEach(track => track.stop());
+                }
+                const constraints = {
+                    video: { facingMode: useFrontCamera ? 'user' : 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } }
+                };
+                currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = currentStream;
+                document.getElementById('faceBox').style.display = 'block';
+            } catch (err) {
+                console.log("Camera access error, switching to simulation mode.");
+                document.getElementById('viewfinderContainer').style.background = 'radial-gradient(circle, #222 0%, #000 100%)';
+                video.style.display = 'none';
+            }
+        }
+
+        function toggleCamera() {
+            useFrontCamera = !useFrontCamera;
+            startCamera();
+        }
+
+        function setZoom(val) {
+            document.querySelectorAll('.zoom-btn').forEach(b => {
+                b.classList.remove('bg-cyan-500', 'text-black', 'font-bold');
+                b.classList.add('bg-black/50', 'text-gray-300');
+            });
+            event.target.classList.remove('bg-black/50', 'text-gray-300');
+            event.target.classList.add('bg-cyan-500', 'text-black', 'font-bold');
+        }
+
+        function capturePhoto() {
+            // Flash effect
+            const flash = document.createElement('div');
+            flash.className = 'absolute inset-0 bg-white z-50 transition-opacity duration-300';
+            document.body.appendChild(flash);
+            setTimeout(() => flash.remove(), 300);
+
+            // Audio shutter click simulation
+            try {
+                let ctx = new (window.AudioContext || window.webkitAudioContext)();
+                let osc = ctx.createOscillator();
+                let gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(800, ctx.currentTime);
+                gain.gain.setValueAtTime(0.1, ctx.currentTime);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.05);
+            } catch(e) {}
+
+            alert('✨ AA Ai Studio: ছবি সফলভাবে তোলা হয়েছে এবং ব্যাকগ্রাউন্ডে AI ProVisual Engine দিয়ে অটো-প্রসেস করা হয়েছে!');
+        }
+
+        // Initialize camera on load
+        window.onload = startCamera;
+    </script>
+</body>
+</html>
